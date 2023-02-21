@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"crypto/tls"
 	"fmt"
 	"net/http"
@@ -16,6 +15,7 @@ import (
 const IndexName = "go-test-index1"
 
 func main() {
+
 	// Initialize the client with SSL/TLS enabled.
 	client, err := opensearch.NewClient(opensearch.Config{
 		Transport: &http.Transport{
@@ -52,35 +52,28 @@ func main() {
 	fmt.Println(res)
 
 	// Insert
-	entry_document := dboperations.CreateEntry("Moneyball", "Bennett Miller", "2011")
-	req := opensearchapi.IndexRequest{
-		Index: IndexName,
-		Body:  entry_document,
-	}
-	insertResponse := dboperations.Insert(req, client)
-	defer insertResponse.Body.Close()
+	// dictconfig.AddEntries(IndexName, client)
 
 	// Search
-	query := dboperations.CreateSearchQuery("5", "Moneyball")
 	search := opensearchapi.SearchRequest{
 		Index: []string{IndexName},
-		Body:  query,
+		Body:  dboperations.CreateSearchQuery("5", "good morning"),
 	}
 	searchResponse := dboperations.Search(search, client)
-	fmt.Println("SEARCH RESULTS: ", searchResponse)
-	defer searchResponse.Body.Close()
+	fmt.Println("RESPONSE HERE:", searchResponse)
+	// defer searchResponse.Body.Close()
 
 	// Delete the previously created index.
-	deleteIndex := opensearchapi.IndicesDeleteRequest{
-		Index: []string{IndexName},
-	}
+	// deleteIndex := opensearchapi.IndicesDeleteRequest{
+	// 	Index: []string{IndexName},
+	// }
 
-	deleteIndexResponse, err := deleteIndex.Do(context.Background(), client)
-	if err != nil {
-		fmt.Println("failed to delete index ", err)
-		os.Exit(1)
-	}
-	fmt.Println("Deleting the index")
-	fmt.Println(deleteIndexResponse)
-	defer deleteIndexResponse.Body.Close()
+	// deleteIndexResponse, err := deleteIndex.Do(context.Background(), client)
+	// if err != nil {
+	// 	fmt.Println("failed to delete index ", err)
+	// 	os.Exit(1)
+	// }
+	// fmt.Println("Deleting the index")
+	// fmt.Println(deleteIndexResponse)
+	// defer deleteIndexResponse.Body.Close()
 }
