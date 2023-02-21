@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/cal1co/jpiv2/dboperations"
 	opensearch "github.com/opensearch-project/opensearch-go"
 	opensearchapi "github.com/opensearch-project/opensearch-go/opensearchapi"
 )
@@ -50,86 +51,24 @@ func main() {
 	fmt.Println("Creating index")
 	fmt.Println(res)
 
-	// Add a document to the index.
-	document := strings.NewReader(`{
-        "title": "Moneyball",
-        "director": "Bennett Miller",
-        "year": "2011"
-    }`)
-
-	docId := "1"
+	// Insert
+	entry_document := dboperations.CreateEntry("Moneyball", "Bennett Miller", "2011")
 	req := opensearchapi.IndexRequest{
-		Index:      IndexName,
-		DocumentID: docId,
-		Body:       document,
+		Index: IndexName,
+		Body:  entry_document,
 	}
-	insertResponse, err := req.Do(context.Background(), client)
-	if err != nil {
-		fmt.Println("failed to insert document ", err)
-		os.Exit(1)
-	}
-	fmt.Println("Inserting a document")
-	fmt.Println(insertResponse)
+	insertResponse := dboperations.Insert(req, client)
 	defer insertResponse.Body.Close()
 
-	// Perform bulk operations.
-	blk, err := client.Bulk(
-		strings.NewReader(`
-    { "index" : { "_index" : "go-test-index1", "_id" : "2" } }
-    { "title" : "Interstellar", "director" : "Christopher Nolan", "year" : "2014"}
-    { "create" : { "_index" : "go-test-index1", "_id" : "3" } }
-    { "title" : "Star Trek Beyond", "director" : "Justin Lin", "year" : "2015"}
-    { "update" : {"_id" : "3", "_index" : "go-test-index1" } }
-    { "doc" : {"year" : "2016"} }
-`),
-	)
-
-	if err != nil {
-		fmt.Println("failed to perform bulk operations", err)
-		os.Exit(1)
-	}
-	fmt.Println("Performing bulk operations")
-	fmt.Println(blk)
-
-	// Search for the document.
-	content := strings.NewReader(`{
-       "size": 5,
-       "query": {
-           "multi_match": {
-           "query": "Justin Lin",
-           "fields": ["title", "director"]
-           }
-      }
-    }`)
-
+	// Search
+	query := dboperations.CreateSearchQuery("5", "Moneyball")
 	search := opensearchapi.SearchRequest{
 		Index: []string{IndexName},
-		Body:  content,
+		Body:  query,
 	}
-
-	searchResponse, err := search.Do(context.Background(), client)
-	if err != nil {
-		fmt.Println("failed to search document ", err)
-		os.Exit(1)
-	}
-	fmt.Println("Searching for a document")
-	fmt.Println(searchResponse)
+	searchResponse := dboperations.Search(search, client)
+	fmt.Println("SEARCH RESULTS: ", searchResponse)
 	defer searchResponse.Body.Close()
-
-	// Delete the document.
-	delete := opensearchapi.DeleteRequest{
-		Index:      IndexName,
-		DocumentID: docId,
-	}
-
-	deleteResponse, err := delete.Do(context.Background(), client)
-	if err != nil {
-		fmt.Println("failed to delete document ", err)
-		os.Exit(1)
-	}
-	fmt.Println("Deleting a document")
-	fmt.Println(deleteResponse)
-	defer deleteResponse.Body.Close()
 
 	// Delete the previously created index.
 	deleteIndex := opensearchapi.IndicesDeleteRequest{
