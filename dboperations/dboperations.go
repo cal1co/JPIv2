@@ -2,7 +2,9 @@ package dboperations
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -10,31 +12,48 @@ import (
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
-// func CreateEntry(title string, direction string, year string) *strings.Reader {
-// 	reader := `{
-//         "title": "%s",
-//         "director": "%s",
-//         "year": "%s"
-//     }`
-// 	formattedStr := fmt.Sprintf(reader, title, direction, year)
-// 	return strings.NewReader(formattedStr)
-// }
+func CreateIndex(IndexName string) opensearchapi.IndicesCreateRequest {
+	settings := strings.NewReader(`{
+		'settings': {
+		  'index': {
+			   'number_of_shards': 5,
+			   'number_of_replicas': 1
+			   }
+			 }
+		}`)
+	res := opensearchapi.IndicesCreateRequest{
+		Index: IndexName,
+		Body:  settings,
+	}
+	return res
+}
 
 func CreateEntry(word string, alternate string, freq string, def []string) *strings.Reader {
-	reader := `{
-        "word": "%s",
-        "alternate": "%s",
-        "freq": "%s",
-        "def": "%s"
-    }`
-	formattedStr := fmt.Sprintf(reader, word, alternate, freq, def)
-	return strings.NewReader(formattedStr)
+	type Entry struct {
+		Word      string
+		Alternate string
+		Freq      string
+		Def       []string
+	}
+
+	entry := Entry{
+		Word:      word,
+		Alternate: alternate,
+		Freq:      freq,
+		Def:       def,
+	}
+
+	jsonStr, err := json.Marshal(entry)
+	if err != nil {
+		log.Fatalf("Error marhaling JSON: %s", err.Error())
+	}
+	return strings.NewReader(string(jsonStr))
 }
 
 func Insert(req opensearchapi.IndexRequest, client *opensearch.Client) *opensearchapi.Response {
 	response, err := req.Do(context.Background(), client)
 	if err != nil {
-		fmt.Println("OOPS ERROR IN INSERT")
+		fmt.Println("OOPS ERROR IN INSERT", err)
 	}
 	return response
 }
@@ -45,7 +64,7 @@ func CreateSearchQuery(size string, query string) *strings.Reader {
 		"query": {
 			"multi_match": {
 			"query": "%s",
-			"fields": ["def"]
+			"fields": ["Def", "Word", "Alternate"]
 			}
 	   }
 	 }`

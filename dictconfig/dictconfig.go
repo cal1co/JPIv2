@@ -12,14 +12,6 @@ import (
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
-type Entry struct {
-	Word      string
-	Alternate string
-	Freq      string
-	Def       []string
-	Dist      int
-}
-
 func AddEntries(IndexName string, client *opensearch.Client) {
 
 	dict := []string{
@@ -68,7 +60,6 @@ func AddEntries(IndexName string, client *opensearch.Client) {
 
 		for i := 0; i < len(entries); i++ {
 			fmt.Println(i)
-			// for i := 0; i < 500; i++ {
 			intId, err := strconv.Atoi(fmt.Sprint(entries[i][4]))
 			if err != nil {
 				panic(err)
@@ -79,7 +70,6 @@ func AddEntries(IndexName string, client *opensearch.Client) {
 				s[i] = fmt.Sprint(v)
 			}
 			entry := dboperations.CreateEntry(fmt.Sprint(entries[i][0]), fmt.Sprint(entries[i][1]), fmt.Sprint(intId), s)
-
 			dboperations.Insert(
 				opensearchapi.IndexRequest{
 					Index: IndexName,
