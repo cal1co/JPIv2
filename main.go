@@ -9,11 +9,12 @@ import (
 	"os"
 
 	"github.com/cal1co/jpiv2/dboperations"
+	"github.com/cal1co/jpiv2/dictconfig"
 	opensearch "github.com/opensearch-project/opensearch-go"
 	opensearchapi "github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
-const IndexName = "go-test-index1"
+const IndexName = "go-test-index2"
 
 type Entry struct {
 	Word      string
@@ -53,14 +54,12 @@ func main() {
 	fmt.Println(res)
 
 	// Insert
-	// dictconfig.AddEntries(IndexName, client)
+	dictconfig.AddEntries(IndexName, client)
 	// Define the API endpoints.
 	http.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("INCOMING REQUEST", r)
 		query := r.URL.Query().Get("query")
 		if len(query) > 0 {
 			searchRes := handleSearch(client, query)
-			fmt.Println("RESPONSE HERE:", searchRes)
 
 			var searchResult SearchResult
 			if err := json.NewDecoder(searchRes.Body).Decode(&searchResult); err != nil {
@@ -69,7 +68,6 @@ func main() {
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(os.Stdout).Encode(searchResult)
-			fmt.Println("RES HERE", searchResult.Hits.Hits)
 			if err := json.NewEncoder(w).Encode(searchResult.Hits); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return

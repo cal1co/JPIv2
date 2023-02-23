@@ -17,7 +17,7 @@ func CreateIndex(IndexName string) opensearchapi.IndicesCreateRequest {
 		'settings': {
 		  'index': {
 			   'number_of_shards': 5,
-			   'number_of_replicas': 1
+			   'number_of_replicas': 2
 			   }
 			 }
 		}`)
@@ -28,13 +28,14 @@ func CreateIndex(IndexName string) opensearchapi.IndicesCreateRequest {
 	return res
 }
 
+type Entry struct {
+	Word      string
+	Alternate string
+	Freq      string
+	Def       []string
+}
+
 func CreateEntry(word string, alternate string, freq string, def []string) *strings.Reader {
-	type Entry struct {
-		Word      string
-		Alternate string
-		Freq      string
-		Def       []string
-	}
 
 	entry := Entry{
 		Word:      word,
