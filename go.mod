@@ -12,6 +12,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.1 // indirect
+	github.com/lib/pq v1.10.7 // indirect
 	github.com/opensearch-project/opensearch-go v1.1.0 // indirect
 	github.com/throttled/throttled v2.2.5+incompatible // indirect
 )

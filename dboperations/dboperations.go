@@ -55,6 +55,7 @@ func Insert(req opensearchapi.IndexRequest, client *opensearch.Client) *opensear
 	response, err := req.Do(context.Background(), client)
 	if err != nil {
 		fmt.Println("OOPS ERROR IN INSERT", err)
+		return nil
 	}
 	return response
 }

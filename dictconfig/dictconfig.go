@@ -16,7 +16,8 @@ import (
 
 func AddEntries(IndexName string, client *opensearch.Client) {
 
-	directory := "../jpiv2/dictdata/formatted/jmdict"
+	// directory := "../jpiv2/dictdata/formatted/jmdict"
+	directory := "../jpiv2/dictdata/formatted/"
 
 	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -34,7 +35,7 @@ func AddEntries(IndexName string, client *opensearch.Client) {
 			if err := json.Unmarshal(byteValue, &entries); err != nil {
 				panic(err)
 			}
-			for i := 0; i < 300; i++ {
+			for i := 0; i < len(entries); i++ {
 				fmt.Println(path, i)
 				entry, err := json.Marshal(entries[i])
 				if err != nil {
