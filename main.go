@@ -70,6 +70,11 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode("OK")
+		// w.Header().Set("Content-Type", "application/json")
+	})
+
 	mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query().Get("query")
 		if len(query) > 0 {
