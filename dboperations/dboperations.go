@@ -103,8 +103,19 @@ func DeleteSpecific() {
 
 }
 
-func DropAll() {
+func Cleanup(IndexName string, client *opensearch.Client) {
+	deleteIndex := opensearchapi.IndicesDeleteRequest{
+		Index: []string{IndexName},
+	}
 
+	deleteIndexResponse, err := deleteIndex.Do(context.Background(), client)
+	if err != nil {
+		fmt.Println("failed to delete index ", err)
+		os.Exit(1)
+	}
+	fmt.Println("Deleting the index")
+	fmt.Println(deleteIndexResponse)
+	defer deleteIndexResponse.Body.Close()
 }
 
 func PerformBulk() {

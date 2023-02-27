@@ -10,38 +10,14 @@ import (
 	"sync"
 
 	"github.com/cal1co/jpiv2/dboperations"
-	"github.com/cal1co/jpiv2/keygen"
+	"github.com/cal1co/jpiv2/handlers"
 	opensearch "github.com/opensearch-project/opensearch-go"
-	opensearchapi "github.com/opensearch-project/opensearch-go/opensearchapi"
 	"golang.org/x/time/rate"
 )
 
 const IndexName = "go-test-index1"
 
-type Entry struct {
-	Word      string
-	Alternate string
-	Freq      string
-	Def       []string
-}
-type Hit struct {
-	// Id     string  `json:"_id`
-	Score  float64 `json:"_score"`
-	Index  string  `json:"_index"`
-	Source Entry   `json:"_source"`
-}
-type Hits struct {
-	Total struct {
-		Value int64
-	}
-	MaxScore float64 `json:"max_score"`
-	Hits     []Hit   `json:"hits"`
-}
-type SearchResult struct {
-	Took     int
-	TimedOut bool `json:"timed_out"`
-	Hits     Hits
-}
+var limiter = NewIPRateLimiter(1, 5)
 
 type IPRateLimiter struct {
 	ips map[string]*rate.Limiter
@@ -49,8 +25,6 @@ type IPRateLimiter struct {
 	r   rate.Limit
 	b   int
 }
-
-var limiter = NewIPRateLimiter(1, 5)
 
 func main() {
 	// Initialize the client with SSL/TLS enabled.
@@ -72,30 +46,13 @@ func main() {
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode("OK")
-		// w.Header().Set("Content-Type", "application/json")
 	})
 
 	mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query().Get("query")
-		if len(query) > 0 {
-			searchRes := handleSearch(client, query)
-
-			var searchResult SearchResult
-			if err := json.NewDecoder(searchRes.Body).Decode(&searchResult); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(os.Stdout).Encode(searchResult)
-			if err := json.NewEncoder(w).Encode(searchResult.Hits); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-		}
+		handlers.SearchHandler(w, r, client, IndexName)
 	})
 
-	mux.HandleFunc("/generatekey", generateKeyHandler)
+	mux.HandleFunc("/generatekey", handlers.GenerateKeyHandler)
 
 	// Start the HTTP server.
 	fmt.Println("Server listening on port 8888")
@@ -104,19 +61,7 @@ func main() {
 		log.Fatalf("unable to start server: %s", err.Error())
 	}
 
-	// Delete the previously created index.
-	// deleteIndex := opensearchapi.IndicesDeleteRequest{
-	// 	Index: []string{IndexName},
-	// }
-
-	// deleteIndexResponse, err := deleteIndex.Do(context.Background(), client)
-	// if err != nil {
-	// 	fmt.Println("failed to delete index ", err)
-	// 	os.Exit(1)
-	// }
-	// fmt.Println("Deleting the index")
-	// fmt.Println(deleteIndexResponse)
-	// defer deleteIndexResponse.Body.Close()
+	// dboperations.Cleanup(IndexName, client)
 }
 
 func initClient() *opensearch.Client {
@@ -146,28 +91,6 @@ func limitMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
-}
-
-func handleSearch(client *opensearch.Client, query string) *opensearchapi.Response {
-	// Search
-	search := opensearchapi.SearchRequest{
-		Index: []string{IndexName},
-		Body:  dboperations.CreateSearchQuery("50", query),
-	}
-	searchResponse := dboperations.Search(search, client)
-
-	return searchResponse
-}
-
-func generateKeyHandler(w http.ResponseWriter, r *http.Request) {
-	key, err := keygen.GenerateKey()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(w).Encode(key)
-	fmt.Println(key)
-	w.Header().Set("Content-Type", "application/json")
 }
 
 func NewIPRateLimiter(r rate.Limit, b int) *IPRateLimiter {
