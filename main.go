@@ -7,11 +7,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/cal1co/jpiv2/dboperations"
 	"github.com/cal1co/jpiv2/keygen"
 	opensearch "github.com/opensearch-project/opensearch-go"
 	opensearchapi "github.com/opensearch-project/opensearch-go/opensearchapi"
+	"golang.org/x/time/rate"
 )
 
 const IndexName = "go-test-index1"
@@ -41,6 +43,15 @@ type SearchResult struct {
 	Hits     Hits
 }
 
+type IPRateLimiter struct {
+	ips map[string]*rate.Limiter
+	mu  *sync.RWMutex
+	r   rate.Limit
+	b   int
+}
+
+var limiter = NewIPRateLimiter(1, 5)
+
 func main() {
 	// Initialize the client with SSL/TLS enabled.
 	client := initClient()
@@ -56,7 +67,10 @@ func main() {
 	// Insert
 	// dictconfig.AddEntries(IndexName, client)
 	// Define the API endpoints.
-	http.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
+
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query().Get("query")
 		if len(query) > 0 {
 			searchRes := handleSearch(client, query)
@@ -76,21 +90,14 @@ func main() {
 		}
 	})
 
-	http.HandleFunc("/generatekey", func(w http.ResponseWriter, r *http.Request) {
-		key, err := keygen.GenerateKey()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		json.NewEncoder(w).Encode(key)
-		fmt.Println(key)
-		w.Header().Set("Content-Type", "application/json")
-
-	})
+	mux.HandleFunc("/generatekey", generateKeyHandler)
 
 	// Start the HTTP server.
-	fmt.Println("Server listening on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Println("Server listening on port 8888")
+
+	if err := http.ListenAndServe(":8888", limitMiddleware(mux)); err != nil {
+		log.Fatalf("unable to start server: %s", err.Error())
+	}
 
 	// Delete the previously created index.
 	// deleteIndex := opensearchapi.IndicesDeleteRequest{
@@ -124,6 +131,18 @@ func initClient() *opensearch.Client {
 	return client
 }
 
+func limitMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		limiter := limiter.GetLimiter(r.RemoteAddr)
+		if !limiter.Allow() {
+			http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func handleSearch(client *opensearch.Client, query string) *opensearchapi.Response {
 	// Search
 	search := opensearchapi.SearchRequest{
@@ -133,4 +152,51 @@ func handleSearch(client *opensearch.Client, query string) *opensearchapi.Respon
 	searchResponse := dboperations.Search(search, client)
 
 	return searchResponse
+}
+
+func generateKeyHandler(w http.ResponseWriter, r *http.Request) {
+	key, err := keygen.GenerateKey()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(key)
+	fmt.Println(key)
+	w.Header().Set("Content-Type", "application/json")
+}
+
+func NewIPRateLimiter(r rate.Limit, b int) *IPRateLimiter {
+	i := &IPRateLimiter{
+		ips: make(map[string]*rate.Limiter),
+		mu:  &sync.RWMutex{},
+		r:   r,
+		b:   b,
+	}
+
+	return i
+}
+
+func (i *IPRateLimiter) AddIP(ip string) *rate.Limiter {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	limiter := rate.NewLimiter(i.r, i.b)
+
+	i.ips[ip] = limiter
+
+	return limiter
+}
+
+func (i *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
+	i.mu.Lock()
+	limiter, exists := i.ips[ip]
+
+	if !exists {
+		i.mu.Unlock()
+		return i.AddIP(ip)
+	}
+
+	i.mu.Unlock()
+
+	return limiter
 }

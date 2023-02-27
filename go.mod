@@ -15,4 +15,5 @@ require (
 	github.com/lib/pq v1.10.7 // indirect
 	github.com/opensearch-project/opensearch-go v1.1.0 // indirect
 	github.com/throttled/throttled v2.2.5+incompatible // indirect
+	golang.org/x/time v0.3.0 // indirect
 )
