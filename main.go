@@ -56,7 +56,6 @@ func main() {
 
 	// Start the HTTP server.
 	fmt.Println("Server listening on port 8888")
-
 	if err := http.ListenAndServe(":8888", limitMiddleware(mux)); err != nil {
 		log.Fatalf("unable to start server: %s", err.Error())
 	}
