@@ -9,12 +9,12 @@ import (
 	"os"
 
 	"github.com/cal1co/jpiv2/dboperations"
-	"github.com/cal1co/jpiv2/dictconfig"
+	"github.com/cal1co/jpiv2/keygen"
 	opensearch "github.com/opensearch-project/opensearch-go"
 	opensearchapi "github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
-const IndexName = "go-test-index2"
+const IndexName = "go-test-index1"
 
 type Entry struct {
 	Word      string
@@ -54,7 +54,7 @@ func main() {
 	fmt.Println(res)
 
 	// Insert
-	dictconfig.AddEntries(IndexName, client)
+	// dictconfig.AddEntries(IndexName, client)
 	// Define the API endpoints.
 	http.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query().Get("query")
@@ -74,6 +74,18 @@ func main() {
 			}
 
 		}
+	})
+
+	http.HandleFunc("/generatekey", func(w http.ResponseWriter, r *http.Request) {
+		key, err := keygen.GenerateKey()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(key)
+		fmt.Println(key)
+		w.Header().Set("Content-Type", "application/json")
+
 	})
 
 	// Start the HTTP server.
@@ -116,7 +128,7 @@ func handleSearch(client *opensearch.Client, query string) *opensearchapi.Respon
 	// Search
 	search := opensearchapi.SearchRequest{
 		Index: []string{IndexName},
-		Body:  dboperations.CreateSearchQuery("5", query),
+		Body:  dboperations.CreateSearchQuery("50", query),
 	}
 	searchResponse := dboperations.Search(search, client)
 
