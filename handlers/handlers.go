@@ -7,22 +7,17 @@ import (
 	"os"
 
 	"github.com/cal1co/jpiv2/dboperations"
+	"github.com/cal1co/jpiv2/dictconfig"
 	"github.com/cal1co/jpiv2/keygen"
 	"github.com/opensearch-project/opensearch-go"
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
-type Entry struct {
-	Word      string
-	Alternate string
-	Freq      string
-	Def       []string
-}
 type Hit struct {
 	// Id     string  `json:"_id`
-	Score  float64 `json:"_score"`
-	Index  string  `json:"_index"`
-	Source Entry   `json:"_source"`
+	Score  float64          `json:"_score"`
+	Index  string           `json:"_index"`
+	Source dictconfig.Entry `json:"_source"`
 }
 type Hits struct {
 	Total struct {

@@ -14,50 +14,6 @@ import (
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
-func AddEntries(IndexName string, client *opensearch.Client) {
-
-	// directory := "../jpiv2/dictdata/formatted/jmdict"
-	directory := "../jpiv2/dictdata/formatted/"
-
-	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && filepath.Ext(path) == ".json" {
-			jsonFile, err := os.Open(path)
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			byteValue, _ := io.ReadAll(jsonFile)
-
-			var entries []dboperations.Entry
-			if err := json.Unmarshal(byteValue, &entries); err != nil {
-				panic(err)
-			}
-			for i := 0; i < len(entries); i++ {
-				fmt.Println(path, i)
-				entry, err := json.Marshal(entries[i])
-				if err != nil {
-					log.Fatalf("Error marhaling JSON: %s", err.Error())
-				}
-				dboperations.Insert(
-					opensearchapi.IndexRequest{
-						Index: IndexName,
-						Body:  strings.NewReader(string(entry)),
-					},
-					client)
-
-			}
-
-		}
-		return nil
-	})
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
 type Entry struct {
 	Word      string
 	Alternate string
@@ -69,6 +25,75 @@ type Entry struct {
 type EntryGroup struct {
 	Entries []Entry
 	Pitch   string
+}
+
+func AddEntries(IndexName string, client *opensearch.Client) {
+
+	directory := "../jpiv2/dictdata/formatted/jm_formatted_all_pitch.json"
+
+	jsonFile, err := os.Open(directory)
+	if err != nil {
+		fmt.Println(err)
+	}
+	byteValue, _ := io.ReadAll(jsonFile)
+
+	var entries []Entry
+	if err := json.Unmarshal(byteValue, &entries); err != nil {
+		panic(err)
+	}
+	// for i := 0; i < len(entries); i++ {
+	for i := 0; i < 10; i++ {
+		entry, err := json.Marshal(entries[i])
+		if err != nil {
+			log.Fatalf("Error marhaling JSON: %s", err.Error())
+		}
+		fmt.Println(strings.NewReader(string(entry)))
+		dboperations.Insert(
+			opensearchapi.IndexRequest{
+				Index: IndexName,
+				Body:  strings.NewReader(string(entry)),
+			},
+			client)
+
+	}
+
+	// err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	if !info.IsDir() && filepath.Ext(path) == ".json" {
+	// 		jsonFile, err := os.Open(path)
+	// 		if err != nil {
+	// 			fmt.Println(err)
+	// 		}
+
+	// 		byteValue, _ := io.ReadAll(jsonFile)
+
+	// 		var entries []dboperations.Entry
+	// 		if err := json.Unmarshal(byteValue, &entries); err != nil {
+	// 			panic(err)
+	// 		}
+	// 		for i := 0; i < len(entries); i++ {
+	// 			fmt.Println(path, i)
+	// 			entry, err := json.Marshal(entries[i])
+	// 			if err != nil {
+	// 				log.Fatalf("Error marhaling JSON: %s", err.Error())
+	// 			}
+	// 			dboperations.Insert(
+	// 				opensearchapi.IndexRequest{
+	// 					Index: IndexName,
+	// 					Body:  strings.NewReader(string(entry)),
+	// 				},
+	// 				client)
+
+	// 		}
+
+	// 	}
+	// 	return nil
+	// })
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
 }
 
 func AddPitchToJM() {
@@ -109,7 +134,6 @@ func AddPitchToJM() {
 	}
 
 	directory := "../jpiv2/dictdata/NHK_accent/"
-	var added int
 	err = filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -146,7 +170,6 @@ func AddPitchToJM() {
 						wordStruct.Entries = entryList
 						jmDict[word] = wordStruct
 
-						added++
 					}
 				}
 			}
@@ -154,11 +177,9 @@ func AddPitchToJM() {
 		}
 		return nil
 	})
-	fmt.Println("ADDED PITCH", added)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("SHOULD BE AROUND 280k:", len(jmDict))
 	var entryJson []Entry
 	for _, val := range jmDict {
 		entryJson = append(entryJson, val.Entries...)

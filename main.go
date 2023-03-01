@@ -2,17 +2,20 @@ package main
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"sync"
 
-	"github.com/cal1co/jpiv2/dictconfig"
+	"github.com/cal1co/jpiv2/dboperations"
+	"github.com/cal1co/jpiv2/handlers"
 	opensearch "github.com/opensearch-project/opensearch-go"
 	"golang.org/x/time/rate"
 )
 
-const IndexName = "go-test-index1"
+const IndexName = "jpiv2-dict-store"
 
 var limiter = NewIPRateLimiter(1, 5)
 
@@ -25,32 +28,31 @@ type IPRateLimiter struct {
 
 func main() {
 
-	dictconfig.AddPitchToJM()
-	// client := initClient()
-	// fmt.Println(client.Info())
+	client := initClient()
+	fmt.Println(client.Info())
 
-	// res := dboperations.CreateIndex(IndexName)
-	// fmt.Println("Creating index")
-	// fmt.Println(res)
+	res := dboperations.CreateIndex(IndexName)
+	fmt.Println("Creating index")
+	fmt.Println(res)
 
-	// // dictconfig.AddEntries(IndexName, client)
+	// dictconfig.AddEntries(IndexName, client)
 
-	// mux := http.NewServeMux()
+	mux := http.NewServeMux()
 
-	// mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-	// 	json.NewEncoder(w).Encode("OK")
-	// })
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode("OK")
+	})
 
-	// mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
-	// 	handlers.SearchHandler(w, r, client, IndexName)
-	// })
+	mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
+		handlers.SearchHandler(w, r, client, IndexName)
+	})
 
-	// mux.HandleFunc("/generatekey", handlers.GenerateKeyHandler)
+	mux.HandleFunc("/generatekey", handlers.GenerateKeyHandler)
 
-	// fmt.Println("Server listening on port 8888")
-	// if err := http.ListenAndServe(":8888", limitMiddleware(mux)); err != nil {
-	// 	log.Fatalf("unable to start server: %s", err.Error())
-	// }
+	fmt.Println("Server listening on port 8888")
+	if err := http.ListenAndServe(":8888", limitMiddleware(mux)); err != nil {
+		log.Fatalf("unable to start server: %s", err.Error())
+	}
 
 	// dboperations.Cleanup(IndexName, client)
 }

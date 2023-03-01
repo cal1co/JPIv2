@@ -33,15 +33,17 @@ type Entry struct {
 	Alternate string
 	Freq      string
 	Def       []string
+	Pitch     string
 }
 
-func CreateEntry(word string, alternate string, freq string, def []string) *strings.Reader {
+func CreateEntry(word string, alternate string, freq string, def []string, pitch string) *strings.Reader {
 
 	entry := Entry{
 		Word:      word,
 		Alternate: alternate,
 		Freq:      freq,
 		Def:       def,
+		Pitch:     pitch,
 	}
 
 	jsonStr, err := json.Marshal(entry)
