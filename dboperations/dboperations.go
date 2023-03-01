@@ -71,7 +71,6 @@ func CreateSearchQuery(size string, query string) *strings.Reader {
 	   }
 	 }`
 	formattedStr := fmt.Sprintf(reader, size, query)
-	// fmt.Println("FORMATTED SEARCH QUERY HERE: ", formattedStr)
 	return strings.NewReader(formattedStr)
 }
 
@@ -84,23 +83,20 @@ func Search(search opensearchapi.SearchRequest, client *opensearch.Client) *open
 	return res
 }
 
-func DeleteSpecific() {
-	// Delete the document.
-	// docId := "1"
-	// delete := opensearchapi.DeleteRequest{
-	// 	Index:      IndexName,
-	// 	DocumentID: docId,
-	// }
+func DeleteSpecific(IndexName string, docId string, client *opensearch.Client) {
+	delete := opensearchapi.DeleteRequest{
+		Index:      IndexName,
+		DocumentID: docId,
+	}
 
-	// deleteResponse, err := delete.Do(context.Background(), client)
-	// if err != nil {
-	// 	fmt.Println("failed to delete document ", err)
-	// 	os.Exit(1)
-	// }
-	// fmt.Println("Deleting a document")
-	// fmt.Println(deleteResponse)
-	// defer deleteResponse.Body.Close()
-
+	deleteResponse, err := delete.Do(context.Background(), client)
+	if err != nil {
+		fmt.Println("failed to delete document ", err)
+		os.Exit(1)
+	}
+	fmt.Println("Deleting a document")
+	fmt.Println(deleteResponse)
+	defer deleteResponse.Body.Close()
 }
 
 func Cleanup(IndexName string, client *opensearch.Client) {

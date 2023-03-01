@@ -58,6 +58,115 @@ func AddEntries(IndexName string, client *opensearch.Client) {
 	}
 }
 
+type Entry struct {
+	Word      string
+	Alternate string
+	Freq      string
+	Def       []string
+	Pitch     string
+}
+
+type EntryGroup struct {
+	Entries []Entry
+	Pitch   string
+}
+
+func AddPitchToJM() {
+	jmDict := make(map[string]EntryGroup)
+	jm_directory := "../jpiv2/dictdata/formatted/jmdict"
+	err := filepath.Walk(jm_directory, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && filepath.Ext(path) == ".json" {
+			jsonFile, err := os.Open(path)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			byteValue, _ := io.ReadAll(jsonFile)
+			var entries []Entry
+			if err := json.Unmarshal(byteValue, &entries); err != nil {
+				panic(err)
+			}
+			for i := 0; i < len(entries); i++ {
+				if _, ok := jmDict[entries[i].Word]; ok {
+					entryStruct := jmDict[entries[i].Word]
+					entryStruct.Entries = append(jmDict[entries[i].Word].Entries, entries[i])
+					jmDict[entries[i].Word] = entryStruct
+				} else {
+					var entry EntryGroup
+					entry.Entries = append(entry.Entries, entries[i])
+					jmDict[entries[i].Word] = entry
+				}
+			}
+			defer jsonFile.Close()
+		}
+		return nil
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	directory := "../jpiv2/dictdata/NHK_accent/"
+	var added int
+	err = filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && filepath.Ext(path) == ".json" {
+			jsonFile, err := os.Open(path)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			byteValue, _ := io.ReadAll(jsonFile)
+			var entries [][]interface{}
+			if err := json.Unmarshal(byteValue, &entries); err != nil {
+				panic(err)
+			}
+			for i := 0; i < len(entries); i++ {
+				word := fmt.Sprintf(entries[i][0].(string))
+				if _, ok := jmDict[word]; ok {
+					if wordStruct, ok := jmDict[word]; ok {
+						pitchInfoInterface := entries[i][5].([]interface{})
+						var pitchInfoString []string
+						for _, val := range pitchInfoInterface {
+							str, ok := val.(string)
+							if ok {
+								pitchInfoString = append(pitchInfoString, str)
+							}
+						}
+						wordStruct.Pitch = pitchInfoString[0]
+						var entryList []Entry
+						for _, entry := range wordStruct.Entries {
+							entry.Pitch = pitchInfoString[0]
+							entryList = append(entryList, entry)
+						}
+						wordStruct.Entries = entryList
+						jmDict[word] = wordStruct
+
+						added++
+					}
+				}
+			}
+			defer jsonFile.Close()
+		}
+		return nil
+	})
+	fmt.Println("ADDED PITCH", added)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("SHOULD BE AROUND 280k:", len(jmDict))
+	var entryJson []Entry
+	for _, val := range jmDict {
+		entryJson = append(entryJson, val.Entries...)
+	}
+	file, _ := json.MarshalIndent(entryJson, "", " ")
+	os.WriteFile("jm_formatted_all_pitch.json", file, 0644)
+}
+
 // func formatJMEntries() {
 // var entryJson []dboperations.Entry
 // for _, dictBank := range dict {
