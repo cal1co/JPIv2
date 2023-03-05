@@ -23,7 +23,9 @@ The /search endpoint is a GET method that searches roughly 280,000 Japanese dict
 
 #### Example 1:
 **Request**
-```/search?query=鴨```
+```
+GET /search?query=鴨
+```
 
 **Response**
 ```json
@@ -51,7 +53,9 @@ The /search endpoint is a GET method that searches roughly 280,000 Japanese dict
 
 #### Example 2:
 **Request**
-```/search?query=duck```
+```
+GET /search?query=duck
+```
 
 **Response**
 ```json
