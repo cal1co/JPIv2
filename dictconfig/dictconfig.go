@@ -41,20 +41,18 @@ func AddEntries(IndexName string, client *opensearch.Client) {
 	if err := json.Unmarshal(byteValue, &entries); err != nil {
 		panic(err)
 	}
-	// for i := 0; i < len(entries); i++ {
-	for i := 0; i < 10; i++ {
+	for i := 20000; i < 30000; i++ {
+		fmt.Println(i)
 		entry, err := json.Marshal(entries[i])
 		if err != nil {
 			log.Fatalf("Error marhaling JSON: %s", err.Error())
 		}
-		fmt.Println(strings.NewReader(string(entry)))
 		dboperations.Insert(
 			opensearchapi.IndexRequest{
 				Index: IndexName,
 				Body:  strings.NewReader(string(entry)),
 			},
 			client)
-
 	}
 
 	// err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
