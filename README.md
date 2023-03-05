@@ -21,10 +21,11 @@ GET /generatekey
 ### /search
 The /search endpoint is a GET method that searches roughly 280,000 Japanese dictionary entries from JMDict. This method is a fuzzysearch and supports two-way indexing. To use the search function, queries are formatted like ***/search?query=word***.  
 
-**Search Request Example 1**
+#### Example 1:
+**Request**
 ```/search?query=鴨```
 
-**Search Response Example 1**
+**Response**
 ```json
     {
         "Word": "鴨",
@@ -47,10 +48,12 @@ The /search endpoint is a GET method that searches roughly 280,000 Japanese dict
         "Pitch": "かも｛鴨｝\n発音図：カ↓モ [1]\n助詞付：カ↓モオ\n"
     },
 ```
-**Search Request Example 1**
+
+#### Example 2:
+**Request**
 ```/search?query=duck```
 
-**Search Response Example 1**
+**Response**
 ```json
 [
     {
